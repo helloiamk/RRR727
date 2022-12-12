@@ -1,8 +1,10 @@
 ---
-title: '727'
+title: "SurvMeth 727 Final Project"
 author: "Ruiling Kang, Zhaoyu Yao"
 date: "2022-12-12"
-output: word_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r}
@@ -163,7 +165,7 @@ comparison.cloud(tdmnew, random.order=TRUE,
 ```
 To better reflect people's attitudes, we continued to extend the NRC dictionary and generated word clouds based on it.
 
-```{r fig.height = 6, fig.width = 8}
+```{r fig.height = 10, fig.width = 10}
 mdata<-tdmnew[rownames(tdmnew)!="esim",]
 
 par(mfrow=c(3,4))
@@ -178,6 +180,7 @@ for(i in 1:10){
 }
 
 ```
+
 In this part, based on the high-frequency words for each attitude, we can basically assume what the main reasons for the different attitudes are. Take anticipation as an example, "travel""data""connect""mobile" and "link" allows us to know that the main expectation of people comes from the link for mobile devices when traveling. As to the surprise, words"roam""data plan" and "wireless" clearly gives us an image of people using data plans that can support wireless roaming while a trip.
 
 ## Discussion
