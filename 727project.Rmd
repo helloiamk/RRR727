@@ -1,0 +1,195 @@
+---
+title: '727'
+author: "Ruiling Kang, Zhaoyu Yao"
+date: "2022-12-12"
+output: word_document
+---
+
+```{r}
+library(rtweet)
+library(tidyverse)
+library(tidytext)
+library(ggmap)
+library(ROAuth)
+library(twitteR)
+library(RCurl)
+library(httr)
+library(tm)
+library(wordcloud)
+library(syuzhet)
+```
+## Introduction
+
+An eSIM (embedded-SIM) is a new type of programmable SIM card that is embedded directly into a device. after the Samsung Gear S2 Classic 3G smartwatch first implementing an eSIM in 2016 [@vincent_2016], many brands including Apple, Google and Microsoft have added esim support for use for their devices in the past few years. And from the perspective of consumer, e-sim give people the ability and possibility of comparing networks and selecting service at will-directly from their devices [@meukel2016sim]. Considering the convenience of esim compared with physical sim cards, more and more people choose esim services in the past few years.
+
+Apple announced its first iPhone models without a SIM card tray in September 2022 with the release of the iPhone 14, iPhone 14 Plus, iPhone 14 Pro, and iPhone 14 Pro Max. These versions only support eSIM and are the first iPhones to do so.[@apple] After that, some criticism appeared on some social platforms, which triggers our interest in the overall opinion towards esim in the real general population. In this project, we will conduct a sentiment analysis using tweets from Twitter to figure out whether people hold positive or negative views towards esim and also investigate the top frequent words concerning about and related to esim.
+
+
+## Data
+
+In this project, we conducted our sentiment analysis based on collected tweets from Twitter using 'rtweet' package. We searched related tweets with hashtag esim, setting the total number of collected post as 500 and limited to posts in English. Finally, we collected 295 eligible posts in total for analysis.
+
+After gathering raw material, we conducted pre-processing our text. We removed retweets, references to screen names, hashtags, spaces, numbers, punctuations and urls to clean data. After that, it allows us to identify emotions from each tweet initially, which is the start of further analysis.
+
+```{r}
+auth_setup_default()
+#install.packages("httpuv")
+tweets <- search_tweets("#esim", n = 500,lang="en")
+#tweets
+tweets.df = as.data.frame(tweets)
+
+#clean data
+tweets.df$text=gsub("&amp", "", tweets.df$text)
+tweets.df$text = gsub("&amp", "", tweets.df$text)
+tweets.df$text = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", tweets.df$text)
+tweets.df$text = gsub("@\\w+", "", tweets.df$text)
+tweets.df$text = gsub("[[:punct:]]", "", tweets.df$text)
+tweets.df$text = gsub("[[:digit:]]", "", tweets.df$text)
+tweets.df$text = gsub("http\\w+", "", tweets.df$text)
+tweets.df$text = gsub("[ \t]{2,}", "", tweets.df$text)
+tweets.df$text = gsub("^\\s+|\\s+$", "", tweets.df$text)
+
+tweets.df$text <- iconv(tweets.df$text, "UTF-8", "ASCII", sub="")
+```
+
+## Results
+
+This section presents the main results.
+
+### Data exploration
+
+```{r}
+# Emotions for each tweet using NRC dictionary
+emotions <- get_nrc_sentiment(tweets.df$text)
+emo_bar = colSums(emotions)
+emo_sum = data.frame(count=emo_bar, emotion=names(emo_bar))
+emo_sum$emotion = factor(emo_sum$emotion, levels=emo_sum$emotion[order(emo_sum$count, decreasing = TRUE)])
+```
+
+```{r}
+# Create comparison word cloud data
+
+wordcloud_tweet = c(
+  paste(tweets.df$text[emotions$anger > 0], collapse=" "),
+  paste(tweets.df$text[emotions$anticipation > 0], collapse=" "),
+  paste(tweets.df$text[emotions$disgust > 0], collapse=" "),
+  paste(tweets.df$text[emotions$fear > 0], collapse=" "),
+  paste(tweets.df$text[emotions$joy > 0], collapse=" "),
+  paste(tweets.df$text[emotions$negative > 0], collapse=" "),
+  paste(tweets.df$text[emotions$positive > 0], collapse=" "),
+  paste(tweets.df$text[emotions$sadness > 0], collapse=" "),
+  paste(tweets.df$text[emotions$surprise > 0], collapse=" "),
+  paste(tweets.df$text[emotions$trust > 0], collapse=" ")
+  
+)
+```
+
+```{r fig.height = 4, fig.width = 4}
+# create corpus
+corpus = Corpus(VectorSource(wordcloud_tweet))
+
+# remove punctuation, convert every word in lower case and remove stop words
+
+corpus = tm_map(corpus, tolower)
+corpus = tm_map(corpus, removePunctuation)
+corpus = tm_map(corpus, removeWords, c(stopwords("english")))
+corpus = tm_map(corpus, stemDocument)
+
+# create document term matrix
+
+tdm = TermDocumentMatrix(corpus)
+
+# convert as matrix
+tdm = as.matrix(tdm)
+tdmnew <- tdm[nchar(rownames(tdm)) < 11,]
+```
+
+```{r}
+
+ts_plot(tweets) +
+  theme_minimal() +
+  theme(plot.title = element_text()) +
+  labs(
+    x = NULL, y = NULL,
+    title = "Frequency of #esim Twitter statuses from past 9 days",
+    subtitle = "Twitter status (tweet) counts aggregated using three-hour intervals",
+    caption = "Source: Data collected from Twitter's REST API via rtweet"
+  )
+```
+
+```{r}
+dtm_v <- sort(rowSums(tdm),decreasing=TRUE)
+dtm_d <- data.frame(word = names(dtm_v),freq=dtm_v)
+# Display the top 20 most frequent words
+head(dtm_d, 20)
+# Plot the most frequent words
+barplot(dtm_d[2:20,]$freq, las = 2, names.arg = dtm_d[2:20,]$word,
+        col ="lightblue", main ="Top frequent words",
+        ylab = "Word frequencies")
+
+set.seed(1234)
+wordcloud(words = dtm_d[-1,]$word, freq = dtm_d$freq, min.freq = 5,
+          max.words=100, random.order=FALSE, rot.per=0.40, 
+          colors=brewer.pal(8, "Dark2"))
+
+
+```
+
+### Analysis
+
+This section presents the main results, such as (for example) stats and graphs that show relationships, model results and/or clustering, PCA, etc.
+
+
+```{r}
+# Visualize the emotions from NRC sentiments
+library(plotly)
+p <- plot_ly(emo_sum, x=~emotion, y=~count, type="bar", color=~emotion) %>%
+  layout(xaxis=list(title=""), showlegend=FALSE,
+         title="Emotion Type for hashtag")
+p
+```
+In this part we used NRC lexicon to categorizes words from binary fashion(yes or no) into eight different description: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust. 
+In the current analysis,it is very clear that people's attitude towards esim is very positive, with the more dominant emotions being anticipation and trust.
+
+```{r fig.height = 10, fig.width = 10}
+# column name binding
+colnames(tdm) = c('anger', 'anticipation', 'disgust', 'fear', 'joy', 'negative', 'positive', 'sadness', 'surprise', 'trust')
+colnames(tdmnew) <- colnames(tdm)
+
+comparison.cloud(tdmnew, random.order=TRUE,
+                 colors = c("#00B2FF", "red", "#FF0099", "#6600CC", "green", "orange", "blue", "brown", "black", "purple"),
+                 title.size=1, max.words=250, scale=c(2.5, 0.4),rot.per=0.4)
+
+```
+To better reflect people's attitudes, we continued to extend the NRC dictionary and generated word clouds based on it.
+
+```{r fig.height = 6, fig.width = 8}
+mdata<-tdmnew[rownames(tdmnew)!="esim",]
+
+par(mfrow=c(3,4))
+for(i in 1:10){
+  vect<-mdata[order(mdata[,i],decreasing = TRUE)[1:10],i]
+  
+  par(las=2)
+  barplot(vect, 
+          main=colnames(mdata)[i], 
+          horiz=TRUE,
+          col=rainbow(10)[i])
+}
+
+```
+In this part, based on the high-frequency words for each attitude, we can basically assume what the main reasons for the different attitudes are. Take anticipation as an example, "travel""data""connect""mobile" and "link" allows us to know that the main expectation of people comes from the link for mobile devices when traveling. As to the surprise, words"roam""data plan" and "wireless" clearly gives us an image of people using data plans that can support wireless roaming while a trip.
+
+## Discussion
+In an era of rapid technological development, tweets can be a very reliable source of information. We can use tweets as auxiliary data in social surveys, and sentiment analysis of tweets can help us effectively identify people's attitudes towards different emerging technologies nowadays in a situation where people's emotions are constantly changing.
+From a business perspective, companies can use sentiment analysis to understand how satisfied users are with their goods and thus develop good marketing strategies.
+From the policy perspective, government departments can understand citizens' sentiment tendency toward popular events and grasp public opinion orientation, so as to monitor public opinion more timely and effectively, and also provide support for the formulation of relevant policies.
+
+In this analysis, we extract sentiment words based on the text processing of the text to be analyzed according to the constructed sentiment lexicon and calculate the sentiment tendency of tweets text. And through the analysis, we can see that people's positive emotions about esim are greater than their negative ones. And the source of the positive sentiment is mainly that people think it is an upgrade and provides more convenience for data roaming while traveling. At the same time, there are some negative sentiments about the use of wireless esim being very unfriendly to some devices that only support physical sim cards, and it is easy to see how this can cause problems for some people when traveling abroad to countries that do not support esim .
+
+But our project still has some limitations, first of all, we can not retrieval data long ago, which leads to a missing of some relevant key timing. Second, the social media data have certain limitations, such as sampling bias and lack of demographic information (Yuan et al., 2020 Yuan, Y., Lu, Y., Chow, T.E., Ye, C., Alyaqout, A., Liu, Y., 2020. The Missing Parts from Social Media-Enabled Smart Cities: Who, Where, When, and What? Annals of the American Association of Geographers 110, 462–475. https://doi.org/10.1080/24694452.2019.1631144.).We recommend calibrating sampling errors by collecting additional sources of information during practical applications. Meanwhile, it is true that computer programs have trouble identifying such things as sarcasm, irony, jokes, and hyperbole, which a person has little difficulty identifying. And not realizing that can distort the facts(Boothroyd, 2018 Boothroyd, A., 2018. The benefits (and limitations) of online sentiment analysis tools [WWW Document]. Typely Blog. URL https://typely.com/blog/making-use-of-sentiment-analysis/ (accessed 5.17.19).).But we would not deny that in such an era of information explosion, sentiment analysis is a very efficient way to monitor public opinion.
+
+
+
+
+## References
