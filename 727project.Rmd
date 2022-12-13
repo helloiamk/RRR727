@@ -26,6 +26,8 @@ library(httpuv)
 
 ## Introduction
 
+[**https://github.com/helloiamk/RRR727**](https://github.com/helloiamk/RRR727){.uri}
+
 An eSIM (embedded-SIM) is a new type of programmable SIM card that is embedded directly into a device. after the Samsung Gear S2 Classic 3G smartwatch first implementing an eSIM in 2016 [@vincent_2016], many brands including Apple, Google and Microsoft have added esim support for use for their devices in the past few years. And from the perspective of consumer, e-sim give people the ability and possibility of comparing networks and selecting service at will-directly from their devices [@meukel2016sim]. Considering the convenience of esim compared with physical sim cards, more and more people choose esim services in the past few years.
 
 Apple announced its first iPhone models without a SIM card tray in September 2022 with the release of the iPhone 14, iPhone 14 Plus, iPhone 14 Pro, and iPhone 14 Pro Max. These versions only support eSIM and are the first iPhones to do so.[@apple] After that, some criticism appeared on some social platforms, which triggers our interest in the overall opinion towards esim in the real general population. In this project, we will conduct a sentiment analysis using tweets from Twitter to figure out whether people hold positive or negative views towards esim and also investigate the top frequent words concerning about and related to esim.
